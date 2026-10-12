@@ -60,11 +60,18 @@
         <p id="todaySubtext" class="text-xs text-indigo-200/80 mt-1">Next up in the class rotation</p>
       </div>
 
-      <div class="flex items-center gap-2 mt-4 pt-3 border-t border-indigo-500/20">
+      <!-- ACTION BUTTONS -->
+      <div class="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-indigo-500/20">
         <button id="btnMarkAbsent" onclick="toggleTodayAbsent()" class="flex-1 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5">
           <i class="fa-solid fa-user-slash"></i>
-          <span>Mark Absent Today</span>
+          <span>Mark Absent</span>
         </button>
+
+        <button id="btnNoSchool" onclick="toggleTodayNoSchool()" class="flex-1 bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/40 text-amber-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-calendar-xmark"></i>
+          <span>No School Today</span>
+        </button>
+
         <button onclick="advanceTurnManually()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5 shadow">
           <span>Pass Turn</span>
           <i class="fa-solid fa-forward"></i>
@@ -80,7 +87,7 @@
           2-Week Lineup (Next 10 School Days)
         </h3>
         <button onclick="openHolidaysModal()" class="text-xs text-slate-400 hover:text-indigo-300 flex items-center gap-1">
-          <i class="fa-solid fa-calendar-xmark"></i> Manage No-School Days
+          <i class="fa-solid fa-calendar-plus"></i> Future No-School Days
         </button>
       </div>
 
@@ -359,6 +366,10 @@
 
           if (!isAbsentToday && isMonOnlyEligible) {
             selectedStudent = candidate;
+            
+            // CRITICAL ABSENT LOGIC CHANGE:
+            // Only advance the virtual pointer if candidate was NOT absent today!
+            // If candidate WAS absent today, we hold virtualPointer right here so they get tomorrow's turn.
             virtualPointer = (virtualPointer + 1) % students.length;
             break;
           }
@@ -391,7 +402,22 @@
       const nameEl = document.getElementById('todayDJName');
       const subtextEl = document.getElementById('todaySubtext');
       const btnAbsent = document.getElementById('btnMarkAbsent');
-      const classData = appState[currentClass] || { absentList: [] };
+      const btnNoSchool = document.getElementById('btnNoSchool');
+      const classData = appState[currentClass] || { absentList: [], students: [], turnIndex: 0 };
+      const todayKey = formatDateKey(new Date());
+      const isTodayNoSchool = globalHolidays.includes(todayKey);
+
+      if (isTodayNoSchool) {
+        nameEl.textContent = "No School Today";
+        subtextEl.innerHTML = `<span class="text-amber-300 font-medium"><i class="fa-solid fa-calendar-xmark"></i> School is off today.</span> Turns shift to the next school day.`;
+        btnAbsent.classList.add('hidden');
+        btnNoSchool.innerHTML = `<i class="fa-solid fa-calendar-check"></i><span>Mark School On</span>`;
+        btnNoSchool.className = "flex-1 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5";
+        return;
+      }
+
+      btnNoSchool.innerHTML = `<i class="fa-solid fa-calendar-xmark"></i><span>No School Today</span>`;
+      btnNoSchool.className = "flex-1 bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/40 text-amber-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5";
 
       if (!todayEntry || !todayEntry.student) {
         nameEl.textContent = "No Students";
@@ -402,17 +428,20 @@
 
       btnAbsent.classList.remove('hidden');
       const student = todayEntry.student;
-      const isAbsent = (classData.absentList || []).includes(student.id);
+
+      // Find original scheduled student (top of turn queue)
+      const topStudent = classData.students[classData.turnIndex % classData.students.length];
+      const isTopAbsent = topStudent && (classData.absentList || []).includes(topStudent.id);
 
       nameEl.textContent = student.name;
       
-      if (isAbsent) {
-        subtextEl.innerHTML = `<span class="text-rose-400 font-medium"><i class="fa-solid fa-user-slash"></i> Marked Absent Today</span> — Skipping to next student.`;
-        btnAbsent.innerHTML = `<i class="fa-solid fa-user-check"></i><span>Mark Present Today</span>`;
+      if (isTopAbsent) {
+        subtextEl.innerHTML = `<span class="text-rose-400 font-medium"><i class="fa-solid fa-user-slash"></i> ${topStudent.name} is absent today.</span> ${student.name} is filling in today; ${topStudent.name} gets tomorrow's turn.`;
+        btnAbsent.innerHTML = `<i class="fa-solid fa-user-check"></i><span>Mark ${topStudent.name} Present</span>`;
         btnAbsent.className = "flex-1 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5";
       } else {
         subtextEl.textContent = student.schedule === 'mon_only' ? "Monday Only Student" : "On Schedule";
-        btnAbsent.innerHTML = `<i class="fa-solid fa-user-slash"></i><span>Mark Absent Today</span>`;
+        btnAbsent.innerHTML = `<i class="fa-solid fa-user-slash"></i><span>Mark Absent</span>`;
         btnAbsent.className = "flex-1 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5";
       }
     }
@@ -474,18 +503,31 @@
 
     function toggleTodayAbsent() {
       const classData = appState[currentClass];
-      const lineup = calculateLineup();
-      if (!lineup[0] || !lineup[0].student) return;
+      if (!classData.students || classData.students.length === 0) return;
 
-      const todayStudentId = lineup[0].student.id;
-      const index = classData.absentList.indexOf(todayStudentId);
+      const topStudent = classData.students[classData.turnIndex % classData.students.length];
+      if (!topStudent) return;
+
+      const index = classData.absentList.indexOf(topStudent.id);
 
       if (index > -1) {
         classData.absentList.splice(index, 1);
       } else {
-        classData.absentList.push(todayStudentId);
+        classData.absentList.push(topStudent.id);
       }
 
+      saveAppData();
+    }
+
+    function toggleTodayNoSchool() {
+      const todayKey = formatDateKey(new Date());
+      const idx = globalHolidays.indexOf(todayKey);
+      if (idx > -1) {
+        globalHolidays.splice(idx, 1);
+      } else {
+        globalHolidays.push(todayKey);
+        globalHolidays.sort();
+      }
       saveAppData();
     }
 
@@ -536,7 +578,7 @@
       saveAppData();
     }
 
-    // --- NO SCHOOL / HOLIDAY MANAGERS ---
+    // --- FUTURE NO-SCHOOL DAYS MANAGERS ---
     function openHolidaysModal() {
       renderHolidaysList();
       document.getElementById('holidaysModal').classList.remove('hidden');

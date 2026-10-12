@@ -271,7 +271,8 @@
         appState[cls] = {
           students: defaultRosters[cls] ? [...defaultRosters[cls]] : [],
           turnIndex: 0,
-          absentList: []
+          absentList: [],
+          lastActiveDate: null
         };
       });
       saveAppData();
@@ -280,7 +281,7 @@
     function ensureClassDefaults() {
       CLASS_LIST.forEach(cls => {
         if (!appState[cls]) {
-          appState[cls] = { students: [], turnIndex: 0, absentList: [] };
+          appState[cls] = { students: [], turnIndex: 0, absentList: [], lastActiveDate: null };
         }
       });
     }
@@ -366,10 +367,6 @@
 
           if (!isAbsentToday && isMonOnlyEligible) {
             selectedStudent = candidate;
-            
-            // CRITICAL ABSENT LOGIC CHANGE:
-            // Only advance the virtual pointer if candidate was NOT absent today!
-            // If candidate WAS absent today, we hold virtualPointer right here so they get tomorrow's turn.
             virtualPointer = (virtualPointer + 1) % students.length;
             break;
           }
@@ -429,7 +426,6 @@
       btnAbsent.classList.remove('hidden');
       const student = todayEntry.student;
 
-      // Find original scheduled student (top of turn queue)
       const topStudent = classData.students[classData.turnIndex % classData.students.length];
       const isTopAbsent = topStudent && (classData.absentList || []).includes(topStudent.id);
 
@@ -537,6 +533,7 @@
 
       classData.turnIndex = (classData.turnIndex + 1) % classData.students.length;
       classData.absentList = [];
+      classData.lastActiveDate = formatDateKey(new Date());
       saveAppData();
     }
 
@@ -578,7 +575,6 @@
       saveAppData();
     }
 
-    // --- FUTURE NO-SCHOOL DAYS MANAGERS ---
     function openHolidaysModal() {
       renderHolidaysList();
       document.getElementById('holidaysModal').classList.remove('hidden');

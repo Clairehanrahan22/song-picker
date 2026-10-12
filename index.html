@@ -416,11 +416,9 @@
         const finishedStudent = classData.students[activeIdx];
         
         if (finishedStudent.schedule === 'mon_biweekly') {
-          // Log current week number so she skips next week's Monday!
           finishedStudent.lastWeekTurn = getWeekNumber(new Date());
         }
 
-        // Rotate finished DJ to the bottom of the queue
         classData.students.splice(activeIdx, 1);
         classData.students.push(finishedStudent);
         classData.isTopAbsent = false;

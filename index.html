@@ -41,7 +41,7 @@
   <!-- Main Content Area -->
   <main class="max-w-xl mx-auto w-full px-4 pt-4 flex-1 flex flex-col gap-5">
 
-    <!-- TODAY'S TURN CARD -->
+    <!-- TODAY'S DJ CARD -->
     <section class="bg-gradient-to-br from-indigo-900/60 to-purple-900/60 border border-indigo-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden">
       <div class="absolute -right-6 -bottom-6 text-indigo-500/10 text-9xl font-black pointer-events-none select-none">
         <i class="fa-solid fa-compact-disc"></i>
@@ -50,54 +50,45 @@
       <div class="flex items-center justify-between mb-1">
         <span class="text-xs uppercase tracking-wider font-semibold text-indigo-300 flex items-center gap-1.5">
           <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-          Today's DJ (<span id="currentClassName">1st Hour</span>)
+          Current DJ (<span id="currentClassName">1st Hour</span>)
         </span>
-        <span id="todayDate" class="text-xs text-slate-400 font-mono">Mon, Oct 12</span>
       </div>
 
       <div class="my-3">
         <h2 id="todayDJName" class="text-3xl font-extrabold text-white tracking-tight">---</h2>
-        <p id="todaySubtext" class="text-xs text-indigo-200/80 mt-1">Next up in the class rotation</p>
+        <p id="todaySubtext" class="text-xs text-indigo-200/80 mt-1">First up in rotation</p>
       </div>
 
       <!-- ACTION BUTTONS -->
-      <div class="flex flex-wrap items-center gap-2 mt-4 pt-3 border-t border-indigo-500/20">
-        <button id="btnMarkAbsent" onclick="toggleTodayAbsent()" class="flex-1 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5">
+      <div class="flex items-center gap-2 mt-4 pt-3 border-t border-indigo-500/20">
+        <button id="btnMarkAbsent" onclick="toggleTodayAbsent()" class="flex-1 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-xs py-2.5 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5">
           <i class="fa-solid fa-user-slash"></i>
           <span>Mark Absent</span>
         </button>
 
-        <button id="btnNoSchool" onclick="toggleTodayNoSchool()" class="flex-1 bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/40 text-amber-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5">
-          <i class="fa-solid fa-calendar-xmark"></i>
-          <span>No School Today</span>
-        </button>
-
-        <button onclick="advanceTurnManually()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5 shadow">
-          <span>Pass Turn</span>
-          <i class="fa-solid fa-forward"></i>
+        <button onclick="finishTurnAndRotate()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white text-xs py-2.5 px-3 rounded-lg font-bold transition flex items-center justify-center gap-1.5 shadow-lg">
+          <i class="fa-solid fa-check"></i>
+          <span>Done (Next DJ)</span>
         </button>
       </div>
     </section>
 
-    <!-- TWO WEEK LINEUP LIST -->
+    <!-- ROTATION QUEUE LIST -->
     <section>
       <div class="flex items-center justify-between mb-3 px-1">
         <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
-          <i class="fa-solid fa-calendar-days text-indigo-400"></i>
-          2-Week Lineup (Next 10 School Days)
+          <i class="fa-solid fa-list-ol text-indigo-400"></i>
+          Up Next in Queue
         </h3>
-        <button onclick="openHolidaysModal()" class="text-xs text-slate-400 hover:text-indigo-300 flex items-center gap-1">
-          <i class="fa-solid fa-calendar-plus"></i> Future No-School Days
-        </button>
       </div>
 
-      <div id="lineupList" class="space-y-2">
+      <div id="queueList" class="space-y-2">
         <!-- List items rendered dynamically -->
       </div>
     </section>
 
-    <!-- MANAGE ROSTER MODAL / SECTION -->
-    <section class="mt-4 bg-slate-800/80 border border-slate-700/80 rounded-xl p-4">
+    <!-- MANAGE ROSTER SECTION -->
+    <section class="mt-2 bg-slate-800/80 border border-slate-700/80 rounded-xl p-4">
       <div class="flex items-center justify-between mb-3">
         <h3 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
           <i class="fa-solid fa-users text-slate-400"></i>
@@ -130,10 +121,11 @@
         </div>
 
         <div>
-          <label class="block text-xs font-medium text-slate-400 mb-1">Attendance Days</label>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Attendance Schedule</label>
           <select id="selectSchedule" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
-            <option value="daily">Every Day (Mon - Fri)</option>
-            <option value="mon_only">Mondays Only</option>
+            <option value="daily">Everyday Student</option>
+            <option value="mon_biweekly">Every Other Monday Student</option>
+            <option value="mon_only">Every Monday Student</option>
           </select>
         </div>
       </div>
@@ -141,31 +133,6 @@
       <div class="flex justify-end gap-2 pt-2">
         <button onclick="closeAddStudentModal()" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-700">Cancel</button>
         <button onclick="saveNewStudent()" class="px-4 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow">Save Student</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- MANAGE NO-SCHOOL DAYS MODAL -->
-  <div id="holidaysModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
-    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4">
-      <div class="flex items-center justify-between">
-        <h3 class="text-base font-bold text-white">Manage No-School Days</h3>
-        <button onclick="closeHolidaysModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-
-      <div class="space-y-3">
-        <div class="flex gap-2">
-          <input type="date" id="inputHolidayDate" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
-          <button onclick="addHolidayDate()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-lg font-medium">Add Date</button>
-        </div>
-
-        <div id="holidaysList" class="max-h-40 overflow-y-auto divide-y divide-slate-700/50 text-xs">
-          <!-- Holiday dates listed here -->
-        </div>
-      </div>
-
-      <div class="flex justify-end pt-2">
-        <button onclick="closeHolidaysModal()" class="px-4 py-1.5 rounded-lg text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white">Done</button>
       </div>
     </div>
   </div>
@@ -195,19 +162,9 @@
     const CLASS_LIST = ['1st', '2nd', '3rd', '4a', '4b', '4c', '5th', 'Homeroom'];
     let currentClass = '1st';
     let appState = {};
-    let globalHolidays = [];
-
-    const defaultRosters = {
-      '1st': [
-        { id: '1', name: 'Jordan Miller', schedule: 'daily' },
-        { id: '2', name: 'Taylor Reed (Monday Only)', schedule: 'mon_only' },
-        { id: '3', name: 'Sam Rivera', schedule: 'daily' }
-      ]
-    };
 
     document.addEventListener('DOMContentLoaded', () => {
       renderClassTabs();
-      renderDateHeader();
       loadAppData();
     });
 
@@ -222,19 +179,11 @@
       }
     }
 
-    function renderDateHeader() {
-      const today = new Date();
-      const options = { weekday: 'short', month: 'short', day: 'numeric' };
-      document.getElementById('todayDate').textContent = today.toLocaleDateString('en-US', options);
-    }
-
     function loadAppData() {
       if (isFirebaseConfigured) {
         db.collection('songTracker').doc('masterState').onSnapshot((doc) => {
           if (doc.exists) {
-            const data = doc.data();
-            appState = data.classes || {};
-            globalHolidays = data.holidays || [];
+            appState = doc.data().classes || {};
             ensureClassDefaults();
             updateSyncStatusUI();
             renderAll();
@@ -251,11 +200,9 @@
     }
 
     function loadFromLocalStorage() {
-      const saved = localStorage.getItem('classroom_song_tracker_v2');
+      const saved = localStorage.getItem('classroom_song_tracker_v3');
       if (saved) {
-        const data = JSON.parse(saved);
-        appState = data.classes || {};
-        globalHolidays = data.holidays || [];
+        appState = JSON.parse(saved);
       } else {
         initDefaultState();
       }
@@ -266,14 +213,8 @@
 
     function initDefaultState() {
       appState = {};
-      globalHolidays = [];
       CLASS_LIST.forEach(cls => {
-        appState[cls] = {
-          students: defaultRosters[cls] ? [...defaultRosters[cls]] : [],
-          turnIndex: 0,
-          absentList: [],
-          lastActiveDate: null
-        };
+        appState[cls] = { students: [], isTopAbsent: false };
       });
       saveAppData();
     }
@@ -281,7 +222,7 @@
     function ensureClassDefaults() {
       CLASS_LIST.forEach(cls => {
         if (!appState[cls]) {
-          appState[cls] = { students: [], turnIndex: 0, absentList: [], lastActiveDate: null };
+          appState[cls] = { students: [], isTopAbsent: false };
         }
       });
     }
@@ -292,11 +233,10 @@
       if (isFirebaseConfigured) {
         db.collection('songTracker').doc('masterState').set({
           classes: appState,
-          holidays: globalHolidays,
           lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(err => console.error("Firebase write error:", err));
       } else {
-        localStorage.setItem('classroom_song_tracker_v2', JSON.stringify({ classes: appState, holidays: globalHolidays }));
+        localStorage.setItem('classroom_song_tracker_v3', JSON.stringify(appState));
       }
     }
 
@@ -321,102 +261,61 @@
       renderAll();
     }
 
-    function formatDateKey(d) {
-      const year = d.getFullYear();
-      const month = String(d.getMonth() + 1).padStart(2, '0');
-      const day = String(d.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+    function getWeekNumber(d) {
+      d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+      d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
+      const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+      return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
     }
 
-    function getNextSchoolDays(count = 10) {
-      const days = [];
-      let date = new Date();
-      while (days.length < count) {
-        const dayOfWeek = date.getDay();
-        const dateKey = formatDateKey(date);
-        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-        const isHoliday = globalHolidays.includes(dateKey);
+    // AUTOMATIC ELECTION LOGIC
+    function getTodayActiveDJIndex(students, isTopAbsent) {
+      if (!students || students.length === 0) return -1;
 
-        if (!isWeekend && !isHoliday) {
-          days.push(new Date(date));
+      const now = new Date();
+      const dayOfWeek = now.getDay(); 
+      const isMonday = (dayOfWeek === 1);
+      const currentWeekNum = getWeekNumber(now);
+
+      for (let i = 0; i < students.length; i++) {
+        const candidate = students[i];
+
+        if (i === 0 && isTopAbsent) continue;
+
+        // Monday-Only Rules
+        if (candidate.schedule === 'mon_only' && !isMonday) continue;
+
+        // Every-Other-Monday Rules
+        if (candidate.schedule === 'mon_biweekly') {
+          if (!isMonday) continue; // Skip on Tue-Sun
+          
+          const lastWeekTurn = candidate.lastWeekTurn || 0;
+          if (lastWeekTurn === currentWeekNum) continue; // Already went this Monday
         }
-        date.setDate(date.getDate() + 1);
+
+        return i;
       }
-      return days;
-    }
 
-    function calculateLineup() {
-      const classData = appState[currentClass] || { students: [], turnIndex: 0, absentList: [] };
-      const students = classData.students || [];
-      if (students.length === 0) return [];
-
-      const schoolDays = getNextSchoolDays(10);
-      const lineup = [];
-      let virtualPointer = classData.turnIndex % students.length;
-
-      schoolDays.forEach((date, dayIdx) => {
-        const isToday = dayIdx === 0;
-        const isMonday = date.getDay() === 1;
-        let selectedStudent = null;
-        let attempts = 0;
-
-        while (attempts < students.length) {
-          const candidate = students[virtualPointer];
-          const isAbsentToday = isToday && classData.absentList.includes(candidate.id);
-          const isMonOnlyEligible = candidate.schedule !== 'mon_only' || isMonday;
-
-          if (!isAbsentToday && isMonOnlyEligible) {
-            selectedStudent = candidate;
-            virtualPointer = (virtualPointer + 1) % students.length;
-            break;
-          }
-
-          virtualPointer = (virtualPointer + 1) % students.length;
-          attempts++;
-        }
-
-        lineup.push({
-          date: date,
-          isToday: isToday,
-          student: selectedStudent
-        });
-      });
-
-      return lineup;
+      return 0; // Fallback
     }
 
     function renderAll() {
+      const classData = appState[currentClass] || { students: [], isTopAbsent: false };
       document.getElementById('currentClassName').textContent = currentClass === 'Homeroom' ? 'Homeroom' : currentClass + ' Hr';
       document.getElementById('rosterTitle').textContent = `${currentClass === 'Homeroom' ? 'Homeroom' : currentClass + ' Hr'} Roster`;
       
-      const lineup = calculateLineup();
-      renderTodayDJ(lineup[0]);
-      render2WeekLineup(lineup);
-      renderRoster();
+      renderDJCard(classData);
+      renderQueueList(classData);
+      renderRoster(classData);
     }
 
-    function renderTodayDJ(todayEntry) {
+    function renderDJCard(classData) {
       const nameEl = document.getElementById('todayDJName');
       const subtextEl = document.getElementById('todaySubtext');
       const btnAbsent = document.getElementById('btnMarkAbsent');
-      const btnNoSchool = document.getElementById('btnNoSchool');
-      const classData = appState[currentClass] || { absentList: [], students: [], turnIndex: 0 };
-      const todayKey = formatDateKey(new Date());
-      const isTodayNoSchool = globalHolidays.includes(todayKey);
+      const students = classData.students || [];
 
-      if (isTodayNoSchool) {
-        nameEl.textContent = "No School Today";
-        subtextEl.innerHTML = `<span class="text-amber-300 font-medium"><i class="fa-solid fa-calendar-xmark"></i> School is off today.</span> Turns shift to the next school day.`;
-        btnAbsent.classList.add('hidden');
-        btnNoSchool.innerHTML = `<i class="fa-solid fa-calendar-check"></i><span>Mark School On</span>`;
-        btnNoSchool.className = "flex-1 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5";
-        return;
-      }
-
-      btnNoSchool.innerHTML = `<i class="fa-solid fa-calendar-xmark"></i><span>No School Today</span>`;
-      btnNoSchool.className = "flex-1 bg-amber-600/30 hover:bg-amber-600/50 border border-amber-500/40 text-amber-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5";
-
-      if (!todayEntry || !todayEntry.student) {
+      if (students.length === 0) {
         nameEl.textContent = "No Students";
         subtextEl.textContent = "Add students to this class roster below to start.";
         btnAbsent.classList.add('hidden');
@@ -424,59 +323,68 @@
       }
 
       btnAbsent.classList.remove('hidden');
-      const student = todayEntry.student;
+      const activeIdx = getTodayActiveDJIndex(students, classData.isTopAbsent);
+      const activeStudent = students[activeIdx] || students[0];
+      const topStudent = students[0];
 
-      const topStudent = classData.students[classData.turnIndex % classData.students.length];
-      const isTopAbsent = topStudent && (classData.absentList || []).includes(topStudent.id);
+      nameEl.textContent = activeStudent.name;
 
-      nameEl.textContent = student.name;
-      
-      if (isTopAbsent) {
-        subtextEl.innerHTML = `<span class="text-rose-400 font-medium"><i class="fa-solid fa-user-slash"></i> ${topStudent.name} is absent today.</span> ${student.name} is filling in today; ${topStudent.name} gets tomorrow's turn.`;
+      if (classData.isTopAbsent && activeIdx > 0) {
+        subtextEl.innerHTML = `<span class="text-rose-400 font-medium"><i class="fa-solid fa-user-slash"></i> ${topStudent.name} is absent today.</span> ${activeStudent.name} is filling in; ${topStudent.name} stays #1 for next time.`;
         btnAbsent.innerHTML = `<i class="fa-solid fa-user-check"></i><span>Mark ${topStudent.name} Present</span>`;
-        btnAbsent.className = "flex-1 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5";
-      } else {
-        subtextEl.textContent = student.schedule === 'mon_only' ? "Monday Only Student" : "On Schedule";
+        btnAbsent.className = "flex-1 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-200 text-xs py-2.5 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5";
+      } else if ((topStudent.schedule === 'mon_only' || topStudent.schedule === 'mon_biweekly') && activeIdx > 0) {
+        subtextEl.innerHTML = `<span class="text-amber-300 font-medium"><i class="fa-solid fa-clock"></i> ${topStudent.name} is ${topStudent.schedule === 'mon_biweekly' ? 'Every Other Monday' : 'Monday-Only'}.</span> Today isn't her Monday turn, so ${activeStudent.name} is up today!`;
         btnAbsent.innerHTML = `<i class="fa-solid fa-user-slash"></i><span>Mark Absent</span>`;
-        btnAbsent.className = "flex-1 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5";
+        btnAbsent.className = "flex-1 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-xs py-2.5 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5";
+      } else {
+        subtextEl.textContent = activeStudent.schedule === 'mon_biweekly' ? "Every Other Monday Student • Active Today!" : "On Schedule";
+        btnAbsent.innerHTML = `<i class="fa-solid fa-user-slash"></i><span>Mark Absent</span>`;
+        btnAbsent.className = "flex-1 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-xs py-2.5 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5";
       }
     }
 
-    function render2WeekLineup(lineup) {
-      const container = document.getElementById('lineupList');
-      if (lineup.length === 0 || !lineup[0].student) {
-        container.innerHTML = `<div class="p-4 text-center text-slate-500 text-sm bg-slate-800/40 rounded-xl border border-slate-700/50">No schedule available for this class.</div>`;
+    function renderQueueList(classData) {
+      const container = document.getElementById('queueList');
+      const students = classData.students || [];
+
+      if (students.length <= 1) {
+        container.innerHTML = `<div class="p-4 text-center text-slate-500 text-sm bg-slate-800/40 rounded-xl border border-slate-700/50">Add more students to view the rotation queue.</div>`;
         return;
       }
 
-      container.innerHTML = lineup.map((item, idx) => {
-        const dateStr = item.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-        const isToday = item.isToday;
-        const student = item.student;
+      const activeIdx = getTodayActiveDJIndex(students, classData.isTopAbsent);
+
+      container.innerHTML = students.map((student, idx) => {
+        const isActiveToday = (idx === activeIdx);
+        let scheduleBadge = '';
+        if (student.schedule === 'mon_biweekly') scheduleBadge = 'Every Other Mon';
+        else if (student.schedule === 'mon_only') scheduleBadge = 'Mon Only';
 
         return `
-          <div class="flex items-center justify-between p-3 rounded-xl border ${isToday ? 'bg-indigo-950/40 border-indigo-500/50 text-white' : 'bg-slate-800/60 border-slate-700/60 text-slate-300'} transition">
+          <div class="flex items-center justify-between p-3 rounded-xl border ${isActiveToday ? 'bg-indigo-950/60 border-indigo-500/60 text-white' : 'bg-slate-800/60 border-slate-700/60 text-slate-300'} transition">
             <div class="flex items-center gap-3">
-              <div class="w-16 font-mono text-xs ${isToday ? 'text-indigo-400 font-bold' : 'text-slate-400'}">
-                ${isToday ? 'TODAY' : dateStr.split(',')[0]}
-                <div class="text-[10px] text-slate-500">${dateStr.split(',')[1]}</div>
+              <div class="w-8 font-mono text-xs ${isActiveToday ? 'text-emerald-400 font-bold' : 'text-indigo-400 font-bold'}">
+                #${idx + 1}
               </div>
               <div>
-                <div class="font-medium text-sm ${isToday ? 'text-indigo-200 font-semibold' : 'text-slate-200'}">
-                  ${student ? student.name : 'None Eligible'}
+                <div class="font-medium text-sm ${isActiveToday ? 'text-indigo-200 font-bold' : 'text-slate-200'}">
+                  ${student.name}
                 </div>
-                ${student && student.schedule === 'mon_only' ? '<span class="text-[10px] bg-amber-950/80 text-amber-300 px-1.5 py-0.5 rounded border border-amber-800/50">Mon Only</span>' : ''}
               </div>
             </div>
-            <div class="text-xs font-mono text-slate-500">Day ${idx + 1}</div>
+            <div class="flex items-center gap-1.5">
+              ${isActiveToday ? '<span class="text-[10px] bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-800/50 font-semibold">Active DJ</span>' : ''}
+              ${scheduleBadge ? `<span class="text-[10px] bg-amber-950/80 text-amber-300 px-2 py-0.5 rounded border border-amber-800/50">${scheduleBadge}</span>` : ''}
+            </div>
           </div>
         `;
       }).join('');
     }
 
-    function renderRoster() {
+    function renderRoster(classData) {
       const container = document.getElementById('rosterList');
-      const students = (appState[currentClass] && appState[currentClass].students) ? appState[currentClass].students : [];
+      const students = classData.students || [];
 
       if (students.length === 0) {
         container.innerHTML = `<div class="py-3 text-center text-slate-500 text-xs">No students added to ${currentClass} period yet.</div>`;
@@ -488,6 +396,7 @@
           <div class="flex items-center gap-2">
             <span class="text-xs text-slate-500 font-mono w-4">${idx + 1}.</span>
             <span class="font-medium text-slate-200">${s.name}</span>
+            ${s.schedule === 'mon_biweekly' ? '<span class="text-[10px] bg-amber-950 text-amber-400 border border-amber-800/50 px-1.5 py-0.5 rounded">Every Other Mon</span>' : ''}
             ${s.schedule === 'mon_only' ? '<span class="text-[10px] bg-amber-950 text-amber-400 border border-amber-800/50 px-1.5 py-0.5 rounded">Mon Only</span>' : ''}
           </div>
           <button onclick="removeStudent('${s.id}')" class="text-slate-500 hover:text-rose-400 p-1 transition">
@@ -497,43 +406,34 @@
       `).join('');
     }
 
+    function finishTurnAndRotate() {
+      const classData = appState[currentClass];
+      if (!classData.students || classData.students.length === 0) return;
+
+      const activeIdx = getTodayActiveDJIndex(classData.students, classData.isTopAbsent);
+
+      if (activeIdx >= 0 && activeIdx < classData.students.length) {
+        const finishedStudent = classData.students[activeIdx];
+        
+        if (finishedStudent.schedule === 'mon_biweekly') {
+          // Log current week number so she skips next week's Monday!
+          finishedStudent.lastWeekTurn = getWeekNumber(new Date());
+        }
+
+        // Rotate finished DJ to the bottom of the queue
+        classData.students.splice(activeIdx, 1);
+        classData.students.push(finishedStudent);
+        classData.isTopAbsent = false;
+      }
+
+      saveAppData();
+    }
+
     function toggleTodayAbsent() {
       const classData = appState[currentClass];
       if (!classData.students || classData.students.length === 0) return;
 
-      const topStudent = classData.students[classData.turnIndex % classData.students.length];
-      if (!topStudent) return;
-
-      const index = classData.absentList.indexOf(topStudent.id);
-
-      if (index > -1) {
-        classData.absentList.splice(index, 1);
-      } else {
-        classData.absentList.push(topStudent.id);
-      }
-
-      saveAppData();
-    }
-
-    function toggleTodayNoSchool() {
-      const todayKey = formatDateKey(new Date());
-      const idx = globalHolidays.indexOf(todayKey);
-      if (idx > -1) {
-        globalHolidays.splice(idx, 1);
-      } else {
-        globalHolidays.push(todayKey);
-        globalHolidays.sort();
-      }
-      saveAppData();
-    }
-
-    function advanceTurnManually() {
-      const classData = appState[currentClass];
-      if (!classData.students || classData.students.length === 0) return;
-
-      classData.turnIndex = (classData.turnIndex + 1) % classData.students.length;
-      classData.absentList = [];
-      classData.lastActiveDate = formatDateKey(new Date());
+      classData.isTopAbsent = !classData.isTopAbsent;
       saveAppData();
     }
 
@@ -557,7 +457,8 @@
       const newStudent = {
         id: Date.now().toString(),
         name: name,
-        schedule: schedule
+        schedule: schedule,
+        lastWeekTurn: 0
       };
 
       if (!appState[currentClass].students) {
@@ -573,55 +474,6 @@
       if (!confirm("Are you sure you want to remove this student from the class?")) return;
       appState[currentClass].students = appState[currentClass].students.filter(s => s.id !== studentId);
       saveAppData();
-    }
-
-    function openHolidaysModal() {
-      renderHolidaysList();
-      document.getElementById('holidaysModal').classList.remove('hidden');
-      document.getElementById('holidaysModal').classList.add('flex');
-    }
-
-    function closeHolidaysModal() {
-      document.getElementById('holidaysModal').classList.add('hidden');
-      document.getElementById('holidaysModal').classList.remove('flex');
-    }
-
-    function addHolidayDate() {
-      const val = document.getElementById('inputHolidayDate').value;
-      if (!val) return;
-      if (!globalHolidays.includes(val)) {
-        globalHolidays.push(val);
-        globalHolidays.sort();
-        saveAppData();
-        renderHolidaysList();
-      }
-      document.getElementById('inputHolidayDate').value = '';
-    }
-
-    function removeHolidayDate(dateStr) {
-      globalHolidays = globalHolidays.filter(d => d !== dateStr);
-      saveAppData();
-      renderHolidaysList();
-    }
-
-    function renderHolidaysList() {
-      const container = document.getElementById('holidaysList');
-      if (globalHolidays.length === 0) {
-        container.innerHTML = `<div class="py-2 text-center text-slate-500">No blackout dates added.</div>`;
-        return;
-      }
-      container.innerHTML = globalHolidays.map(d => {
-        const parts = d.split('-');
-        const formatted = new Date(parts[0], parts[1]-1, parts[2]).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-        return `
-          <div class="py-2 flex items-center justify-between">
-            <span class="text-slate-200 font-mono">${formatted}</span>
-            <button onclick="removeHolidayDate('${d}')" class="text-slate-500 hover:text-rose-400 p-1">
-              <i class="fa-solid fa-trash-can"></i>
-            </button>
-          </div>
-        `;
-      }).join('');
     }
   </script>
 </body>

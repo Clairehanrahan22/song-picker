@@ -79,6 +79,9 @@
           <i class="fa-solid fa-calendar-days text-indigo-400"></i>
           2-Week Lineup (Next 10 School Days)
         </h3>
+        <button onclick="openHolidaysModal()" class="text-xs text-slate-400 hover:text-indigo-300 flex items-center gap-1">
+          <i class="fa-solid fa-calendar-xmark"></i> Manage No-School Days
+        </button>
       </div>
 
       <div id="lineupList" class="space-y-2">
@@ -135,6 +138,31 @@
     </div>
   </div>
 
+  <!-- MANAGE NO-SCHOOL DAYS MODAL -->
+  <div id="holidaysModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white">Manage No-School Days</h3>
+        <button onclick="closeHolidaysModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <div class="space-y-3">
+        <div class="flex gap-2">
+          <input type="date" id="inputHolidayDate" class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500">
+          <button onclick="addHolidayDate()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-3 py-2 rounded-lg font-medium">Add Date</button>
+        </div>
+
+        <div id="holidaysList" class="max-h-40 overflow-y-auto divide-y divide-slate-700/50 text-xs">
+          <!-- Holiday dates listed here -->
+        </div>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button onclick="closeHolidaysModal()" class="px-4 py-1.5 rounded-lg text-xs font-medium bg-slate-700 hover:bg-slate-600 text-white">Done</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const firebaseConfig = {
       apiKey: "AIzaSyD7Y1bMaB1m04yu6-gaL5_d1pTVI5YYaBk",
@@ -160,6 +188,7 @@
     const CLASS_LIST = ['1st', '2nd', '3rd', '4a', '4b', '4c', '5th', 'Homeroom'];
     let currentClass = '1st';
     let appState = {};
+    let globalHolidays = [];
 
     const defaultRosters = {
       '1st': [
@@ -196,7 +225,9 @@
       if (isFirebaseConfigured) {
         db.collection('songTracker').doc('masterState').onSnapshot((doc) => {
           if (doc.exists) {
-            appState = doc.data().classes || {};
+            const data = doc.data();
+            appState = data.classes || {};
+            globalHolidays = data.holidays || [];
             ensureClassDefaults();
             updateSyncStatusUI();
             renderAll();
@@ -215,7 +246,9 @@
     function loadFromLocalStorage() {
       const saved = localStorage.getItem('classroom_song_tracker_v2');
       if (saved) {
-        appState = JSON.parse(saved);
+        const data = JSON.parse(saved);
+        appState = data.classes || {};
+        globalHolidays = data.holidays || [];
       } else {
         initDefaultState();
       }
@@ -226,6 +259,7 @@
 
     function initDefaultState() {
       appState = {};
+      globalHolidays = [];
       CLASS_LIST.forEach(cls => {
         appState[cls] = {
           students: defaultRosters[cls] ? [...defaultRosters[cls]] : [],
@@ -250,10 +284,11 @@
       if (isFirebaseConfigured) {
         db.collection('songTracker').doc('masterState').set({
           classes: appState,
+          holidays: globalHolidays,
           lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
         }).catch(err => console.error("Firebase write error:", err));
       } else {
-        localStorage.setItem('classroom_song_tracker_v2', JSON.stringify(appState));
+        localStorage.setItem('classroom_song_tracker_v2', JSON.stringify({ classes: appState, holidays: globalHolidays }));
       }
     }
 
@@ -278,12 +313,23 @@
       renderAll();
     }
 
+    function formatDateKey(d) {
+      const year = d.getFullYear();
+      const month = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
     function getNextSchoolDays(count = 10) {
       const days = [];
       let date = new Date();
       while (days.length < count) {
         const dayOfWeek = date.getDay();
-        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+        const dateKey = formatDateKey(date);
+        const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+        const isHoliday = globalHolidays.includes(dateKey);
+
+        if (!isWeekend && !isHoliday) {
           days.push(new Date(date));
         }
         date.setDate(date.getDate() + 1);
@@ -488,6 +534,56 @@
       if (!confirm("Are you sure you want to remove this student from the class?")) return;
       appState[currentClass].students = appState[currentClass].students.filter(s => s.id !== studentId);
       saveAppData();
+    }
+
+    // --- NO SCHOOL / HOLIDAY MANAGERS ---
+    function openHolidaysModal() {
+      renderHolidaysList();
+      document.getElementById('holidaysModal').classList.remove('hidden');
+      document.getElementById('holidaysModal').classList.add('flex');
+    }
+
+    function closeHolidaysModal() {
+      document.getElementById('holidaysModal').classList.add('hidden');
+      document.getElementById('holidaysModal').classList.remove('flex');
+    }
+
+    function addHolidayDate() {
+      const val = document.getElementById('inputHolidayDate').value;
+      if (!val) return;
+      if (!globalHolidays.includes(val)) {
+        globalHolidays.push(val);
+        globalHolidays.sort();
+        saveAppData();
+        renderHolidaysList();
+      }
+      document.getElementById('inputHolidayDate').value = '';
+    }
+
+    function removeHolidayDate(dateStr) {
+      globalHolidays = globalHolidays.filter(d => d !== dateStr);
+      saveAppData();
+      renderHolidaysList();
+    }
+
+    function renderHolidaysList() {
+      const container = document.getElementById('holidaysList');
+      if (globalHolidays.length === 0) {
+        container.innerHTML = `<div class="py-2 text-center text-slate-500">No blackout dates added.</div>`;
+        return;
+      }
+      container.innerHTML = globalHolidays.map(d => {
+        const parts = d.split('-');
+        const formatted = new Date(parts[0], parts[1]-1, parts[2]).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+        return `
+          <div class="py-2 flex items-center justify-between">
+            <span class="text-slate-200 font-mono">${formatted}</span>
+            <button onclick="removeHolidayDate('${d}')" class="text-slate-500 hover:text-rose-400 p-1">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
     }
   </script>
 </body>

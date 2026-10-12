@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classroom Song Rotation</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Firebase App & Firestore SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .no-scrollbar::-webkit-scrollbar { display: none; }
+    .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col pb-12">
+
+  <!-- Header & Navigation -->
+  <header class="bg-slate-800 border-b border-slate-700 sticky top-0 z-30 shadow-md">
+    <div class="max-w-xl mx-auto px-4 py-3">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <i class="fa-solid fa-music text-indigo-400 text-xl"></i>
+          <h1 class="font-bold text-lg text-white">Song Rotation</h1>
+        </div>
+        <div id="syncStatus" class="flex items-center gap-1.5 text-xs text-amber-400 bg-amber-950/60 px-2.5 py-1 rounded-full border border-amber-800/50">
+          <i class="fa-solid fa-database text-[10px] animate-pulse"></i>
+          <span>Connecting...</span>
+        </div>
+      </div>
+
+      <!-- Class Period Tabs Selector -->
+      <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1 text-sm font-medium" id="classTabs">
+        <!-- Class tabs injected via JavaScript -->
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main class="max-w-xl mx-auto w-full px-4 pt-4 flex-1 flex flex-col gap-5">
+
+    <!-- TODAY'S TURN CARD -->
+    <section class="bg-gradient-to-br from-indigo-900/60 to-purple-900/60 border border-indigo-500/30 rounded-2xl p-5 shadow-lg relative overflow-hidden">
+      <div class="absolute -right-6 -bottom-6 text-indigo-500/10 text-9xl font-black pointer-events-none select-none">
+        <i class="fa-solid fa-compact-disc"></i>
+      </div>
+
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs uppercase tracking-wider font-semibold text-indigo-300 flex items-center gap-1.5">
+          <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+          Today's DJ (<span id="currentClassName">1st Hour</span>)
+        </span>
+        <span id="todayDate" class="text-xs text-slate-400 font-mono">Mon, Oct 12</span>
+      </div>
+
+      <div class="my-3">
+        <h2 id="todayDJName" class="text-3xl font-extrabold text-white tracking-tight">---</h2>
+        <p id="todaySubtext" class="text-xs text-indigo-200/80 mt-1">Next up in the class rotation</p>
+      </div>
+
+      <div class="flex items-center gap-2 mt-4 pt-3 border-t border-indigo-500/20">
+        <button id="btnMarkAbsent" onclick="toggleTodayAbsent()" class="flex-1 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-user-slash"></i>
+          <span>Mark Absent Today</span>
+        </button>
+        <button onclick="advanceTurnManually()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5 shadow">
+          <span>Pass Turn</span>
+          <i class="fa-solid fa-forward"></i>
+        </button>
+      </div>
+    </section>
+
+    <!-- TWO WEEK LINEUP LIST -->
+    <section>
+      <div class="flex items-center justify-between mb-3 px-1">
+        <h3 class="text-sm font-semibold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+          <i class="fa-solid fa-calendar-days text-indigo-400"></i>
+          2-Week Lineup (Next 10 School Days)
+        </h3>
+      </div>
+
+      <div id="lineupList" class="space-y-2">
+        <!-- List items rendered dynamically -->
+      </div>
+    </section>
+
+    <!-- MANAGE ROSTER MODAL / SECTION -->
+    <section class="mt-4 bg-slate-800/80 border border-slate-700/80 rounded-xl p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-sm font-semibold text-slate-200 flex items-center gap-2">
+          <i class="fa-solid fa-users text-slate-400"></i>
+          <span id="rosterTitle">1st Hour Roster</span>
+        </h3>
+        <button onclick="openAddStudentModal()" class="text-xs bg-slate-700 hover:bg-slate-600 text-indigo-300 px-2.5 py-1 rounded border border-slate-600 transition flex items-center gap-1">
+          <i class="fa-solid fa-plus text-[10px]"></i> Add Student
+        </button>
+      </div>
+
+      <div id="rosterList" class="divide-y divide-slate-700/50 text-sm">
+        <!-- Roster list items rendered dynamically -->
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ADD STUDENT MODAL -->
+  <div id="studentModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden items-center justify-center z-50 p-4">
+    <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-sm p-5 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-white">Add New Student</h3>
+        <button onclick="closeAddStudentModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Student Name</label>
+          <input type="text" id="inputStudentName" placeholder="e.g. Alex Smith" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">Attendance Days</label>
+          <select id="selectSchedule" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+            <option value="daily">Every Day (Mon - Fri)</option>
+            <option value="mon_only">Mondays Only</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeAddStudentModal()" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:bg-slate-700">Cancel</button>
+        <button onclick="saveNewStudent()" class="px-4 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 hover:bg-indigo-500 text-white shadow">Save Student</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyD7Y1bMaB1m04yu6-gaL5_d1pTVI5YYaBk",
+      authDomain: "song-picker-3f02b.firebaseapp.com",
+      projectId: "song-picker-3f02b",
+      storageBucket: "song-picker-3f02b.firebasestorage.app",
+      messagingSenderId: "390209121255",
+      appId: "1:390209121255:web:9a87282973a0667c3f2b42",
+      measurementId: "G-6GQRQ8HZJV"
+    };
+
+    let db = null;
+    let isFirebaseConfigured = false;
+
+    try {
+      firebase.initializeApp(firebaseConfig);
+      db = firebase.firestore();
+      isFirebaseConfigured = true;
+    } catch (e) {
+      console.warn("Firebase initialization failed, using local storage fallback", e);
+    }
+
+    const CLASS_LIST = ['1st', '2nd', '3rd', '4a', '4b', '4c', '5th', 'Homeroom'];
+    let currentClass = '1st';
+    let appState = {};
+
+    const defaultRosters = {
+      '1st': [
+        { id: '1', name: 'Jordan Miller', schedule: 'daily' },
+        { id: '2', name: 'Taylor Reed (Monday Only)', schedule: 'mon_only' },
+        { id: '3', name: 'Sam Rivera', schedule: 'daily' }
+      ]
+    };
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderClassTabs();
+      renderDateHeader();
+      loadAppData();
+    });
+
+    function updateSyncStatusUI() {
+      const statusEl = document.getElementById('syncStatus');
+      if (isFirebaseConfigured) {
+        statusEl.className = "flex items-center gap-1.5 text-xs text-emerald-400 bg-emerald-950/60 px-2.5 py-1 rounded-full border border-emerald-800/50";
+        statusEl.innerHTML = `<i class="fa-solid fa-cloud text-[10px]"></i><span>Synced to Firebase</span>`;
+      } else {
+        statusEl.className = "flex items-center gap-1.5 text-xs text-amber-400 bg-amber-950/60 px-2.5 py-1 rounded-full border border-amber-800/50";
+        statusEl.innerHTML = `<i class="fa-solid fa-hard-drive text-[10px]"></i><span>Local Storage</span>`;
+      }
+    }
+
+    function renderDateHeader() {
+      const today = new Date();
+      const options = { weekday: 'short', month: 'short', day: 'numeric' };
+      document.getElementById('todayDate').textContent = today.toLocaleDateString('en-US', options);
+    }
+
+    function loadAppData() {
+      if (isFirebaseConfigured) {
+        db.collection('songTracker').doc('masterState').onSnapshot((doc) => {
+          if (doc.exists) {
+            appState = doc.data().classes || {};
+            ensureClassDefaults();
+            updateSyncStatusUI();
+            renderAll();
+          } else {
+            initDefaultState();
+          }
+        }, (err) => {
+          console.error("Firestore read error, initializing defaults locally...", err);
+          initDefaultState();
+        });
+      } else {
+        loadFromLocalStorage();
+      }
+    }
+
+    function loadFromLocalStorage() {
+      const saved = localStorage.getItem('classroom_song_tracker_v2');
+      if (saved) {
+        appState = JSON.parse(saved);
+      } else {
+        initDefaultState();
+      }
+      ensureClassDefaults();
+      updateSyncStatusUI();
+      renderAll();
+    }
+
+    function initDefaultState() {
+      appState = {};
+      CLASS_LIST.forEach(cls => {
+        appState[cls] = {
+          students: defaultRosters[cls] ? [...defaultRosters[cls]] : [],
+          turnIndex: 0,
+          absentList: []
+        };
+      });
+      saveAppData();
+    }
+
+    function ensureClassDefaults() {
+      CLASS_LIST.forEach(cls => {
+        if (!appState[cls]) {
+          appState[cls] = { students: [], turnIndex: 0, absentList: [] };
+        }
+      });
+    }
+
+    function saveAppData() {
+      updateSyncStatusUI();
+      renderAll();
+      if (isFirebaseConfigured) {
+        db.collection('songTracker').doc('masterState').set({
+          classes: appState,
+          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+        }).catch(err => console.error("Firebase write error:", err));
+      } else {
+        localStorage.setItem('classroom_song_tracker_v2', JSON.stringify(appState));
+      }
+    }
+
+    function renderClassTabs() {
+      const container = document.getElementById('classTabs');
+      container.innerHTML = CLASS_LIST.map(cls => {
+        const isActive = cls === currentClass;
+        const activeClasses = isActive 
+          ? 'bg-indigo-600 text-white shadow font-bold' 
+          : 'bg-slate-800 text-slate-400 hover:text-slate-200 border border-slate-700';
+        return `
+          <button onclick="switchClass('${cls}')" class="px-3 py-1.5 rounded-lg whitespace-nowrap transition flex items-center gap-1.5 ${activeClasses}">
+            <span>${cls === 'Homeroom' ? 'HR' : cls + ' Hr'}</span>
+          </button>
+        `;
+      }).join('');
+    }
+
+    function switchClass(classId) {
+      currentClass = classId;
+      renderClassTabs();
+      renderAll();
+    }
+
+    function getNextSchoolDays(count = 10) {
+      const days = [];
+      let date = new Date();
+      while (days.length < count) {
+        const dayOfWeek = date.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+          days.push(new Date(date));
+        }
+        date.setDate(date.getDate() + 1);
+      }
+      return days;
+    }
+
+    function calculateLineup() {
+      const classData = appState[currentClass] || { students: [], turnIndex: 0, absentList: [] };
+      const students = classData.students || [];
+      if (students.length === 0) return [];
+
+      const schoolDays = getNextSchoolDays(10);
+      const lineup = [];
+      let virtualPointer = classData.turnIndex % students.length;
+
+      schoolDays.forEach((date, dayIdx) => {
+        const isToday = dayIdx === 0;
+        const isMonday = date.getDay() === 1;
+        let selectedStudent = null;
+        let attempts = 0;
+
+        while (attempts < students.length) {
+          const candidate = students[virtualPointer];
+          const isAbsentToday = isToday && classData.absentList.includes(candidate.id);
+          const isMonOnlyEligible = candidate.schedule !== 'mon_only' || isMonday;
+
+          if (!isAbsentToday && isMonOnlyEligible) {
+            selectedStudent = candidate;
+            virtualPointer = (virtualPointer + 1) % students.length;
+            break;
+          }
+
+          virtualPointer = (virtualPointer + 1) % students.length;
+          attempts++;
+        }
+
+        lineup.push({
+          date: date,
+          isToday: isToday,
+          student: selectedStudent
+        });
+      });
+
+      return lineup;
+    }
+
+    function renderAll() {
+      document.getElementById('currentClassName').textContent = currentClass === 'Homeroom' ? 'Homeroom' : currentClass + ' Hr';
+      document.getElementById('rosterTitle').textContent = `${currentClass === 'Homeroom' ? 'Homeroom' : currentClass + ' Hr'} Roster`;
+      
+      const lineup = calculateLineup();
+      renderTodayDJ(lineup[0]);
+      render2WeekLineup(lineup);
+      renderRoster();
+    }
+
+    function renderTodayDJ(todayEntry) {
+      const nameEl = document.getElementById('todayDJName');
+      const subtextEl = document.getElementById('todaySubtext');
+      const btnAbsent = document.getElementById('btnMarkAbsent');
+      const classData = appState[currentClass] || { absentList: [] };
+
+      if (!todayEntry || !todayEntry.student) {
+        nameEl.textContent = "No Students";
+        subtextEl.textContent = "Add students to this class roster below to start.";
+        btnAbsent.classList.add('hidden');
+        return;
+      }
+
+      btnAbsent.classList.remove('hidden');
+      const student = todayEntry.student;
+      const isAbsent = (classData.absentList || []).includes(student.id);
+
+      nameEl.textContent = student.name;
+      
+      if (isAbsent) {
+        subtextEl.innerHTML = `<span class="text-rose-400 font-medium"><i class="fa-solid fa-user-slash"></i> Marked Absent Today</span> — Skipping to next student.`;
+        btnAbsent.innerHTML = `<i class="fa-solid fa-user-check"></i><span>Mark Present Today</span>`;
+        btnAbsent.className = "flex-1 bg-emerald-600/30 hover:bg-emerald-600/50 border border-emerald-500/40 text-emerald-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5";
+      } else {
+        subtextEl.textContent = student.schedule === 'mon_only' ? "Monday Only Student" : "On Schedule";
+        btnAbsent.innerHTML = `<i class="fa-solid fa-user-slash"></i><span>Mark Absent Today</span>`;
+        btnAbsent.className = "flex-1 bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-xs py-2 px-3 rounded-lg font-medium transition flex items-center justify-center gap-1.5";
+      }
+    }
+
+    function render2WeekLineup(lineup) {
+      const container = document.getElementById('lineupList');
+      if (lineup.length === 0 || !lineup[0].student) {
+        container.innerHTML = `<div class="p-4 text-center text-slate-500 text-sm bg-slate-800/40 rounded-xl border border-slate-700/50">No schedule available for this class.</div>`;
+        return;
+      }
+
+      container.innerHTML = lineup.map((item, idx) => {
+        const dateStr = item.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        const isToday = item.isToday;
+        const student = item.student;
+
+        return `
+          <div class="flex items-center justify-between p-3 rounded-xl border ${isToday ? 'bg-indigo-950/40 border-indigo-500/50 text-white' : 'bg-slate-800/60 border-slate-700/60 text-slate-300'} transition">
+            <div class="flex items-center gap-3">
+              <div class="w-16 font-mono text-xs ${isToday ? 'text-indigo-400 font-bold' : 'text-slate-400'}">
+                ${isToday ? 'TODAY' : dateStr.split(',')[0]}
+                <div class="text-[10px] text-slate-500">${dateStr.split(',')[1]}</div>
+              </div>
+              <div>
+                <div class="font-medium text-sm ${isToday ? 'text-indigo-200 font-semibold' : 'text-slate-200'}">
+                  ${student ? student.name : 'None Eligible'}
+                </div>
+                ${student && student.schedule === 'mon_only' ? '<span class="text-[10px] bg-amber-950/80 text-amber-300 px-1.5 py-0.5 rounded border border-amber-800/50">Mon Only</span>' : ''}
+              </div>
+            </div>
+            <div class="text-xs font-mono text-slate-500">Day ${idx + 1}</div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderRoster() {
+      const container = document.getElementById('rosterList');
+      const students = (appState[currentClass] && appState[currentClass].students) ? appState[currentClass].students : [];
+
+      if (students.length === 0) {
+        container.innerHTML = `<div class="py-3 text-center text-slate-500 text-xs">No students added to ${currentClass} period yet.</div>`;
+        return;
+      }
+
+      container.innerHTML = students.map((s, idx) => `
+        <div class="py-2.5 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-slate-500 font-mono w-4">${idx + 1}.</span>
+            <span class="font-medium text-slate-200">${s.name}</span>
+            ${s.schedule === 'mon_only' ? '<span class="text-[10px] bg-amber-950 text-amber-400 border border-amber-800/50 px-1.5 py-0.5 rounded">Mon Only</span>' : ''}
+          </div>
+          <button onclick="removeStudent('${s.id}')" class="text-slate-500 hover:text-rose-400 p-1 transition">
+            <i class="fa-solid fa-trash-can text-xs"></i>
+          </button>
+        </div>
+      `).join('');
+    }
+
+    function toggleTodayAbsent() {
+      const classData = appState[currentClass];
+      const lineup = calculateLineup();
+      if (!lineup[0] || !lineup[0].student) return;
+
+      const todayStudentId = lineup[0].student.id;
+      const index = classData.absentList.indexOf(todayStudentId);
+
+      if (index > -1) {
+        classData.absentList.splice(index, 1);
+      } else {
+        classData.absentList.push(todayStudentId);
+      }
+
+      saveAppData();
+    }
+
+    function advanceTurnManually() {
+      const classData = appState[currentClass];
+      if (!classData.students || classData.students.length === 0) return;
+
+      classData.turnIndex = (classData.turnIndex + 1) % classData.students.length;
+      classData.absentList = [];
+      saveAppData();
+    }
+
+    function openAddStudentModal() {
+      document.getElementById('studentModal').classList.remove('hidden');
+      document.getElementById('studentModal').classList.add('flex');
+    }
+
+    function closeAddStudentModal() {
+      document.getElementById('studentModal').classList.add('hidden');
+      document.getElementById('studentModal').classList.remove('flex');
+      document.getElementById('inputStudentName').value = '';
+    }
+
+    function saveNewStudent() {
+      const name = document.getElementById('inputStudentName').value.trim();
+      const schedule = document.getElementById('selectSchedule').value;
+
+      if (!name) return;
+
+      const newStudent = {
+        id: Date.now().toString(),
+        name: name,
+        schedule: schedule
+      };
+
+      if (!appState[currentClass].students) {
+        appState[currentClass].students = [];
+      }
+
+      appState[currentClass].students.push(newStudent);
+      saveAppData();
+      closeAddStudentModal();
+    }
+
+    function removeStudent(studentId) {
+      if (!confirm("Are you sure you want to remove this student from the class?")) return;
+      appState[currentClass].students = appState[currentClass].students.filter(s => s.id !== studentId);
+      saveAppData();
+    }
+  </script>
+</body>
+</html>
